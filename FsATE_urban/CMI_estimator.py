@@ -331,14 +331,14 @@ class CMI_estimator():
         return val
 
 
-    def symb_parallel_shuffles_significance(self, X, Y,Z, value):
+    def FsATE_parallel_shuffles_significance(self, X, Y,Z, value):
 
         random_seeds = np.random.default_rng(self.seed).integers(np.iinfo(np.int32).max, size=(self.sig_samples))
         null_dist = np.zeros(self.sig_samples)
 
 
         for i, seed in enumerate(random_seeds):
-            shuffle_val = self.symb_parallel_shuffles(X, Y, Z, seed=seed)
+            shuffle_val = self.FsATE_parallel_shuffles(X, Y, Z, seed=seed)
             # print('shuffled value',shuffle_val)
             null_dist[i] = shuffle_val
         
@@ -350,7 +350,7 @@ class CMI_estimator():
 
     
 
-    def symb_parallel_shuffles(self, X,Y,Z, seed=None):
+    def FsATE_parallel_shuffles(self, X,Y,Z, seed=None):
         """Returns shuffled array over first column
 
         Parameters
@@ -382,14 +382,14 @@ class CMI_estimator():
     
 
 
-    def symb_subset_parallel_shuffles_significance(self, X, Y,Z, value):
+    def FsACTE_parallel_shuffles_significance(self, X, Y,Z, value):
 
         random_seeds = np.random.default_rng(self.seed).integers(np.iinfo(np.int32).max, size=(self.sig_samples))
         null_dist = np.zeros(self.sig_samples)
 
 
         for i, seed in enumerate(random_seeds):
-            shuffle_val = self.symb_subset_parallel_shuffles(X, Y, Z, seed=seed)
+            shuffle_val = self.FsACTE_parallel_shuffles(X, Y, Z, seed=seed)
             # print('shuffled value',shuffle_val)
             null_dist[i] = shuffle_val
         
@@ -401,7 +401,7 @@ class CMI_estimator():
 
     
 
-    def symb_subset_parallel_shuffles(self, X,Y,Z, seed=None):
+    def FsACTE_parallel_shuffles(self, X,Y,Z, seed=None):
         """Returns shuffled array over first column
 
         Parameters

@@ -79,7 +79,7 @@ for i in range(array.shape[1]):
             val = cmi.cmi_symb(array, X = X, Y = Y, Z = Z) # using FsACTE
             print('FsACTE_val: ',val)
 
-            pval = cmi.symb_subset_parallel_shuffles_significance(X, Y, Z, value = val)
+            pval = cmi.FsACTE_parallel_shuffles_significance(X, Y, Z, value = val)
             print('FsACTE_pval: ', pval)
             P_corr, P_value = cmi.get_analytic_significance(array, X, Y, Z)
             print('partial_corr_val: ',P_corr,) 

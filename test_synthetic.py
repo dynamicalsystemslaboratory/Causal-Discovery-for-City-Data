@@ -180,7 +180,7 @@ for nn in range(len(N_list)):
                             X = [(i, -tau_max)]; 
 
                             val = cmi.cmi_symb(array, X = X, Y = Y, Z = Z)
-                            pval = cmi.symb_parallel_shuffles_significance(X, Y, Z, value = val)
+                            pval = cmi.FsATE_parallel_shuffles_significance(X, Y, Z, value = val)
 
                             if j == 1:
                                 if pval < 0.05:
