@@ -29,9 +29,18 @@ def adf_detrend(data):
 
 def Regress(X,Y,Exposure1,Exposure2):
     Time_Steps, Ncities = X.shape
+    Y_pd = pd.DataFrame({"Y":np.log(Y.flatten())})
+    x_pd = pd.DataFrame({"X":np.log(X.flatten()), "n":np.tile(np.log(Exposure1),Time_Steps), "r":np.tile(np.log(Exposure2),Time_Steps)})
+    X_pd = sm.add_constant(x_pd,has_constant='add') 
+    model = sm.OLS(Y_pd,X_pd)
+    fit = model.fit()
+    return fit
+
+def Autoregress(X,Y,Z,Exposure1,Exposure2):
+    Time_Steps, Ncities = X.shape
     Y_pd = pd.DataFrame({"Y":Y.flatten()})
-    x_pd = pd.DataFrame({"X":X.flatten(), "n":np.tile(np.log(Exposure1),Time_Steps), "r":np.tile(np.log(Exposure2),Time_Steps)})
-    X_pd = sm.add_constant(x_pd) 
+    x_pd = pd.DataFrame({"X":X.flatten(),"Y_past":Z.flatten(), "n":np.tile(np.log(Exposure1),Time_Steps), "r":np.tile(np.log(Exposure2),Time_Steps)})
+    X_pd = sm.add_constant(x_pd,has_constant='add') 
     model = sm.OLS(Y_pd,X_pd)
     fit = model.fit()
     return fit
@@ -51,8 +60,9 @@ T = 100 # time steps
 
 
 
-N_exp = np.linspace(0.5, 1.5, 6); R_exp = np.linspace(-.5, .5, 11)
-R_exp_x = [0.5]; 
+N_exp = np.linspace(0.5, 1.5, 6); 
+R_exp = np.linspace(-.5, .5, 11)
+# R_exp_x = [0.5]; 
 
 N_exp_X = 1.2; N_exp_Y = 0.3
 
@@ -60,27 +70,34 @@ sum_exp = np.linspace(0.5,1.5, 11); sum_exp_Y = np.linspace(0.5,1.5,11)
 
 # r1 = 0.6; r2 = 0.8
 
-ALL_X2Y_regress = np.zeros((5, 11, 11))
-ALL_Y2X_regress = np.zeros((5, 11, 11))
+ALL_X2Y_regress = np.zeros((len(N_list), len(R_exp), len(R_exp)))
+ALL_Y2X_regress = np.zeros((len(N_list), len(R_exp), len(R_exp)))
 
-ALL_X2Y_FsAMI = np.zeros((5, 11, 11))
-ALL_Y2X_FsAMI = np.zeros((5, 11, 11))
+ALL_X2Y_FsAMI = np.zeros((len(N_list), len(R_exp), len(R_exp)))
+ALL_Y2X_FsAMI = np.zeros((len(N_list), len(R_exp), len(R_exp)))
 
+ALL_X2Y_autoregress = np.zeros((len(N_list), len(R_exp), len(R_exp)))
+ALL_Y2X_autoregress = np.zeros((len(N_list), len(R_exp), len(R_exp)))
+
+ALL_X2Y_PerCapita = np.zeros((len(N_list), len(R_exp), len(R_exp)))
+ALL_Y2X_PerCapita = np.zeros((len(N_list), len(R_exp), len(R_exp)))
 for nn in range(len(N_list)):
     
     N = N_list[nn]
     
-    for r1 in range(len(sum_exp)):
-        for r2 in range(len(sum_exp)):
+    for r1 in range(len(R_exp)):
+        for r2 in range(len(R_exp)):
             
-            R_exp_X = R_exp[r1]; R_exp_X = 0.6; sum_exp_X = N_exp_X + R_exp_X
-            R_exp_Y = R_exp[r2]; R_exp_Y = 0.5; sum_exp_Y = N_exp_Y + R_exp_Y
+            R_exp_X = R_exp[r1]; sum_exp_X = N_exp_X + R_exp_X
+            R_exp_Y = R_exp[r2]; sum_exp_Y = N_exp_Y + R_exp_Y
             # R_exp_X = sum_exp[r1] - N_exp_X; R_exp_Y = sum_exp[r2] - N_exp_Y
             print('N = {}, sum_exp_X = {}, sum_exp_Y = {}, R_exp_X = {}, R_exp_Y = {}'.format(N, sum_exp_X, sum_exp_Y, R_exp_X, R_exp_Y))
             X2Y_pvals_regress = []
             Y2X_pvals_regress = []
-            X2Y_pvals_PerCapita = []
-            Y2X_pvals_PerCapita = []
+            X2Y_pvals_autoregress = []
+            Y2X_pvals_autoregress = []
+            X2Y_pvals_PerCapita = 0
+            Y2X_pvals_PerCapita = 0
             X2Y_pvals_FAMI = 0
             Y2X_pvals_FAMI = 0
             X2Y_pvals_SAMI = 0
@@ -111,8 +128,11 @@ for nn in range(len(N_list)):
                 PerCapita_X = (n**(N_exp_X)*r**(R_exp_X)*np.exp(ZETA_X))/n
                 PerCapita_Y = (n**(N_exp_Y)*r**(R_exp_Y)*np.exp(ZETA_Y))/n
                 
-                X2Y_pvals_regress.append(Regress(PerCapita_X[:-1,:],PerCapita_Y[1:,:],n,r).pvalues[0])
-                Y2X_pvals_regress.append(Regress(PerCapita_Y[:-1,:],PerCapita_X[1:,:],n,r).pvalues[0])
+                X2Y_pvals_regress.append(Regress(PerCapita_X[:-1,:],PerCapita_Y[1:,:],n,r).pvalues[1])
+                Y2X_pvals_regress.append(Regress(PerCapita_Y[:-1,:],PerCapita_X[1:,:],n,r).pvalues[1])
+                
+                X2Y_pvals_autoregress.append(Autoregress(PerCapita_X[:-1,:],PerCapita_Y[1:,:],PerCapita_Y[:-1,:],n,r).pvalues[1])
+                Y2X_pvals_autoregress.append(Autoregress(PerCapita_Y[:-1,:],PerCapita_X[1:,:],PerCapita_X[:-1,:],n,r).pvalues[1])
 
                 # ZETA_X = np.zeros((T,N),dtype=float)
                 # ZETA_Y = np.zeros((T,N),dtype=float)
@@ -170,7 +190,9 @@ for nn in range(len(N_list)):
                 array = array_FAMI
                 # print('array_FAMI', var_names, array.shape)
 
-                cmi = CMI_estimator(array=array, sig_samples=sig_samples, symbs=5)
+                FsATE = CMI_estimator(array=array_FAMI, sig_samples=sig_samples, symbs=5)
+                cmi_PerCapita = CMI_estimator(array=array_PerCapita, sig_samples=sig_samples, symbs=5)
+
                 for i in range(array.shape[1]):
                     for j in range(array.shape[1]):
                         if i!=j:    
@@ -179,34 +201,54 @@ for nn in range(len(N_list)):
                             Z  = [(j, -t) for t in range(1, tau_max+1)]
                             X = [(i, -tau_max)]; 
 
-                            val = cmi.cmi_symb(array, X = X, Y = Y, Z = Z)
-                            pval = cmi.FsATE_parallel_shuffles_significance(X, Y, Z, value = val)
+                            FsATE_val = FsATE.cmi_symb(array_FAMI, X = X, Y = Y, Z = Z)
+                            FsATE_pval = FsATE.FsATE_parallel_shuffles_significance(X, Y, Z, value = FsATE_val)
 
                             if j == 1:
-                                if pval < 0.05:
+                                if FsATE_pval < 0.05:
                                     X2Y_pvals_FAMI = X2Y_pvals_FAMI + 1
                             else:
-                                if pval < 0.05:
+                                if FsATE_pval < 0.05:
                                     Y2X_pvals_FAMI = Y2X_pvals_FAMI + 1
 
+
+                            cmi_PerCapita_val = cmi_PerCapita.cmi_symb(array_FAMI, X = X, Y = Y, Z = Z)
+                            cmi_PerCapita_pval = cmi_PerCapita.FsATE_parallel_shuffles_significance(X, Y, Z, value = FsATE_val)
+
+                            if j == 1:
+                                if cmi_PerCapita_pval < 0.05:
+                                    X2Y_pvals_PerCapita = X2Y_pvals_PerCapita + 1
+                            else:
+                                if cmi_PerCapita_pval < 0.05:
+                                    Y2X_pvals_PerCapita = Y2X_pvals_PerCapita + 1
+
                             
-                print((sample+1)/samples*100,'% complete FAMIs, ', 'X2Y FPR = ',100*X2Y_pvals_FAMI/(sample+1),'Y2X FPR = ',100*(Y2X_pvals_FAMI)/(sample+1))              
+                # print((sample+1)/samples*100,'% complete FAMIs, ', 'X2Y FPR = ',100*X2Y_pvals_FAMI/(sample+1),'Y2X FPR = ',100*(Y2X_pvals_FAMI)/(sample+1))              
 
             X2Y_pvals_regress = np.array(X2Y_pvals_regress)
             Y2X_pvals_regress = np.array(Y2X_pvals_regress)
+            
+            X2Y_pvals_autoregress = np.array(X2Y_pvals_autoregress)
+            Y2X_pvals_autoregress = np.array(Y2X_pvals_autoregress)
 
-
-
-            print("Regression: X2Y",100*len(np.where(X2Y_pvals_regress<0.05)[0])/len(X2Y_pvals_regress))
-            print("Regression: Y2X",100*len(np.where(Y2X_pvals_regress<0.05)[0])/len(Y2X_pvals_regress))
 
 
             print('FsAMIs: X2Y FPR = ',100*X2Y_pvals_FAMI/(sample+1))
-            print('FsAMIs: Y2X FPR = ',100*(Y2X_pvals_FAMI)/(sample+1))       
+            print('FsAMIs: Y2X FPR = ',100-100*(Y2X_pvals_FAMI)/(sample+1))       
+            
+            print('PerCapita: X2Y FPR = ',100*X2Y_pvals_PerCapita/(sample+1))
+            print('PerCapita: Y2X FPR = ',100-100*(Y2X_pvals_PerCapita)/(sample+1)) 
+
+            print("Regression: X2Y = ",100*len(np.where(X2Y_pvals_regress<0.05)[0])/len(X2Y_pvals_regress))
+            print("Regression: Y2X = ",100-100*len(np.where(Y2X_pvals_regress<0.05)[0])/len(Y2X_pvals_regress))
+
+            print("Autoregression: X2Y",100*len(np.where(X2Y_pvals_autoregress<0.05)[0])/len(X2Y_pvals_autoregress))
+            print("Autoregression: Y2X",100*len(np.where(Y2X_pvals_autoregress<0.05)[0])/len(Y2X_pvals_autoregress))
+      
 
 
-            ALL_X2Y_regress[nn, r1, r2] = 100*len(np.where(X2Y_pvals_regress<0.05)[0])/len(X2Y_pvals_regress)  
-            ALL_Y2X_regress[nn, r1, r2] = 100*len(np.where(Y2X_pvals_regress<0.05)[0])/len(Y2X_pvals_regress)      
+            # ALL_X2Y_regress[nn, r1, r2] = 100*len(np.where(X2Y_pvals_regress<0.05)[0])/len(X2Y_pvals_regress)  
+            # ALL_Y2X_regress[nn, r1, r2] = 100*len(np.where(Y2X_pvals_regress<0.05)[0])/len(Y2X_pvals_regress)      
 
-            ALL_X2Y_FsAMI[nn, r1, r2] = 100*X2Y_pvals_FAMI/(sample+1)
-            ALL_Y2X_FsAMI[nn, r1, r2] = 100*Y2X_pvals_FAMI/(sample+1)
+            # ALL_X2Y_FsAMI[nn, r1, r2] = 100*X2Y_pvals_FAMI/(sample+1)
+            # ALL_Y2X_FsAMI[nn, r1, r2] = 100*Y2X_pvals_FAMI/(sample+1)
